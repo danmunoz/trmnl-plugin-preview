@@ -30,8 +30,10 @@ Open:
 http://127.0.0.1:4568
 ```
 
-The first screen asks for the same connection details. The workspace opens only
-after the endpoint responds successfully.
+When you start the server with `--target`, `--token`, and `--user-uuid`, the
+workspace opens directly after the endpoint diagnostics pass. If you start the
+server without connection details, the first screen asks for them before the
+workspace loads.
 
 ## Develop From Source
 
