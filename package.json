@@ -1,0 +1,62 @@
+{
+  "name": "trmnl-plugin-preview",
+  "version": "0.1.0",
+  "description": "Local preview server for third-party TRMNL plugin markup endpoints.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.11.0",
+  "author": {
+    "name": "Daniel Munoz",
+    "email": "me@danmunoz.com"
+  },
+  "bin": {
+    "trmnl-plugin-preview": "dist/src/index.js",
+    "trmnl-preview-server": "dist/src/index.js"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "trmnl",
+    "preview",
+    "plugin",
+    "renderer"
+  ],
+  "homepage": "https://github.com/danmunoz/trmnl-plugin-preview#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danmunoz/trmnl-plugin-preview.git"
+  },
+  "bugs": {
+    "url": "https://github.com/danmunoz/trmnl-plugin-preview/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24 <26"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "start": "node dist/src/index.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm run build && node --test test/*.test.mjs",
+    "test:pack": "pnpm run build && node ./scripts/smoke-pack.mjs",
+    "prepack": "pnpm run build",
+    "prepublishOnly": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run test:pack",
+    "install:browsers": "playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.53.0",
+    "sharp": "^0.34.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.3",
+    "typescript": "^6.0.0"
+  }
+}
