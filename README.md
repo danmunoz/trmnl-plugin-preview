@@ -24,6 +24,9 @@ npx trmnl-plugin-preview \
   --user-uuid local-preview-user
 ```
 
+The preview server launches your default browser automatically when it starts.
+Use `--no-open` to keep it in terminal-only mode.
+
 Open:
 
 ```text

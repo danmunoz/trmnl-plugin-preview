@@ -6,6 +6,7 @@ import { createPreviewServer } from "../dist/src/server.js";
 const baseConfig = {
   host: "127.0.0.1",
   port: 0,
+  openBrowser: false,
   targetUrl: "http://127.0.0.1:1/trmnl/markup",
   token: "default-secret-token",
   userUuid: "default-user",

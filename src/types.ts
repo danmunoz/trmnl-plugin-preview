@@ -71,6 +71,7 @@ export type Palette = {
 export type PreviewConfig = {
   host: string;
   port: number;
+  openBrowser: boolean;
   targetUrl: string;
   token: string;
   userUuid: string;

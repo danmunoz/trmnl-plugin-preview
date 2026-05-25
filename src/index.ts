@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { loadConfig, printHelp } from "./config.js";
 import { createPreviewServer } from "./server.js";
@@ -22,9 +23,14 @@ const config = loadConfig();
 const server = createPreviewServer(config);
 
 server.listen(config.port, config.host, () => {
-  const url = `http://${config.host}:${config.port}`;
-  console.log(`TRMNL preview server listening at ${url}`);
+  const listenUrl = buildHttpUrl(config.host, config.port);
+  console.log(`TRMNL preview server listening at ${listenUrl}`);
   console.log(`Markup target: ${config.targetUrl}`);
+
+  if (config.openBrowser) {
+    const browserUrl = buildHttpUrl(resolveBrowserHost(config.host), config.port);
+    openInDefaultBrowser(browserUrl);
+  }
 });
 
 function loadPackageJson(): { version?: unknown } {
@@ -36,4 +42,32 @@ function loadPackageJson(): { version?: unknown } {
     }
   }
   return {};
+}
+
+function resolveBrowserHost(host: string): string {
+  if (host === "0.0.0.0" || host === "::" || host === "[::]") {
+    return "127.0.0.1";
+  }
+  return host;
+}
+
+function buildHttpUrl(host: string, port: number): string {
+  const normalizedHost = host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
+  return `http://${normalizedHost}:${port}`;
+}
+
+function openInDefaultBrowser(url: string): void {
+  const command = process.platform === "darwin" ? "open" : process.platform === "win32" ? "cmd" : "xdg-open";
+  const args = process.platform === "win32" ? ["/c", "start", "", url] : [url];
+
+  try {
+    const child = spawn(command, args, { detached: true, stdio: "ignore" });
+    child.on("error", (error) => {
+      console.warn(`Unable to open browser automatically: ${error.message}`);
+    });
+    child.unref();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`Unable to open browser automatically: ${message}`);
+  }
 }

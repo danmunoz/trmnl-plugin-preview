@@ -45,6 +45,7 @@ const palette = {
 const config = {
   host: "127.0.0.1",
   port: 4568,
+  openBrowser: false,
   targetUrl: "http://localhost:8787/trmnl/markup",
   token: "secret-token-for-test",
   userUuid: "user",
