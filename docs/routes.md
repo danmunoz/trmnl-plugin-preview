@@ -9,6 +9,10 @@ server with local tooling.
 
 Displays the connection screen or preview workspace.
 
+When startup configuration provides connection values, the server validates the
+endpoint before rendering the workspace. Invalid credentials or endpoint
+responses return the connection screen with status `400` and a redacted error.
+
 ## Settings
 
 - `POST /settings`
@@ -16,6 +20,10 @@ Displays the connection screen or preview workspace.
 Saves local connection settings and simulator controls in the current preview
 session. The request requires the session CSRF token rendered into the dashboard
 form.
+
+The CSRF token is the primary settings authorization. Parseable cross-site
+`Origin` headers are rejected as defense-in-depth; absent, opaque, or unusable
+origin headers are tolerated only after CSRF validation succeeds.
 
 ## Rendered Previews
 

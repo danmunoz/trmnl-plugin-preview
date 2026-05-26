@@ -84,7 +84,10 @@ test("dashboard stores connection settings server-side and redirects to a saniti
     const response = await fetch(`${previewBase}/settings`, {
       method: "POST",
       redirect: "manual",
-      headers: { cookie: initial.cookie },
+      headers: {
+        cookie: initial.cookie,
+        origin: previewBase,
+      },
       body: new URLSearchParams({
         sid: initial.sid,
         csrf: initial.csrf,
@@ -116,6 +119,48 @@ test("dashboard stores connection settings server-side and redirects to a saniti
     assert.doesNotMatch(html, /query-secret/);
     assert.doesNotMatch(html, /token=query-secret/);
     assert.doesNotMatch(html, /user_uuid=query-user/);
+  } finally {
+    await close(preview);
+    await close(target);
+  }
+});
+
+test("configured startup credentials are validated before rendering the workspace", async () => {
+  const target = createServer((request, response) => {
+    request.resume();
+    response.writeHead(401, { "content-type": "application/json" });
+    response.end(JSON.stringify({
+      error: "unauthorized",
+      token: request.headers.authorization,
+      user: "configured-user",
+    }));
+  });
+  const targetBase = await listen(target);
+  const preview = createPreviewServer({
+    ...baseConfig,
+    targetUrl: `${targetBase}/trmnl/markup`,
+    token: "configured-secret-token",
+    userUuid: "configured-user",
+    connectionSource: "configured",
+  });
+  const previewBase = await listen(preview);
+
+  try {
+    const response = await fetch(`${previewBase}/?model=v2&orientation=portrait&font=classic`);
+    const html = await response.text();
+
+    assert.equal(response.status, 400);
+    assert.match(html, /Connect your plugin/);
+    assert.match(html, /role="alert"/);
+    assert.match(html, /Markup endpoint returned 401/);
+    assert.match(html, /value="configured-user"/);
+    assert.match(html, new RegExp(`value="${targetBase.replaceAll(".", "\\.")}/trmnl/markup"`));
+    assert.doesNotMatch(html, /configured-secret-token/);
+    assert.doesNotMatch(html, /Bearer configured-secret-token/);
+    assert.doesNotMatch(html, /Renderer workspace/);
+    assert.doesNotMatch(html, /\/api\/diagnostics/);
+    assert.doesNotMatch(html, /\/render\//);
+    assert.doesNotMatch(html, /<iframe/);
   } finally {
     await close(preview);
     await close(target);
@@ -182,7 +227,10 @@ test("settings reject missing or invalid csrf tokens", async () => {
       const response = await fetch(`${previewBase}/settings`, {
         method: "POST",
         redirect: "manual",
-        headers: { cookie: initial.cookie },
+        headers: {
+          cookie: initial.cookie,
+          origin: "null",
+        },
         body: new URLSearchParams({
           sid: initial.sid,
           csrf,
@@ -201,6 +249,144 @@ test("settings reject missing or invalid csrf tokens", async () => {
       assert.doesNotMatch(html, /csrf-secret-token/);
       assert.doesNotMatch(html, /\/render\//);
     }
+  } finally {
+    await close(preview);
+  }
+});
+
+test("settings accept opaque browser origins when the session csrf token is valid", async () => {
+  const target = createServer((_request, response) => {
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify({
+      markup: "<div>Full</div>",
+      markup_half_horizontal: "<div>Half horizontal</div>",
+      markup_half_vertical: "<div>Half vertical</div>",
+      markup_quadrant: "<div>Quadrant</div>",
+    }));
+  });
+  const targetBase = await listen(target);
+  const preview = createPreviewServer(baseConfig);
+  const previewBase = await listen(preview);
+
+  try {
+    const initial = await getSession(previewBase);
+    const response = await fetch(`${previewBase}/settings`, {
+      method: "POST",
+      redirect: "manual",
+      headers: {
+        cookie: initial.cookie,
+        origin: "null",
+      },
+      body: new URLSearchParams({
+        sid: initial.sid,
+        csrf: initial.csrf,
+        target: `${targetBase}/trmnl/markup`,
+        token: "opaque-origin-secret-token",
+        user_uuid: "opaque-origin-user",
+        model: "og_png",
+        orientation: "landscape",
+        font: "default",
+      }),
+    });
+
+    assert.equal(response.status, 303);
+    const location = response.headers.get("location") ?? "";
+    assert.match(location, /^\//);
+    assert.doesNotMatch(location, /opaque-origin-secret-token/);
+    assert.doesNotMatch(location, /user_uuid/);
+    assert.doesNotMatch(location, /target=/);
+
+    const cookie = response.headers.get("set-cookie")?.split(";")[0];
+    assert.ok(cookie);
+
+    const dashboard = await fetch(new URL(location, previewBase), { headers: { cookie } });
+    const html = await dashboard.text();
+    assert.equal(dashboard.status, 200);
+    assert.match(html, /\/render\/full\.html\?sid=/);
+    assert.doesNotMatch(html, /opaque-origin-secret-token/);
+  } finally {
+    await close(preview);
+    await close(target);
+  }
+});
+
+test("settings accept unusable origin headers when the session csrf token is valid", async () => {
+  const target = createServer((_request, response) => {
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify({
+      markup: "<div>Full</div>",
+      markup_half_horizontal: "<div>Half horizontal</div>",
+      markup_half_vertical: "<div>Half vertical</div>",
+      markup_quadrant: "<div>Quadrant</div>",
+    }));
+  });
+  const targetBase = await listen(target);
+  const preview = createPreviewServer(baseConfig);
+  const previewBase = await listen(preview);
+
+  try {
+    const initial = await getSession(previewBase);
+    const response = await fetch(`${previewBase}/settings`, {
+      method: "POST",
+      redirect: "manual",
+      headers: {
+        cookie: initial.cookie,
+        origin: "http://[::1",
+      },
+      body: new URLSearchParams({
+        sid: initial.sid,
+        csrf: initial.csrf,
+        target: `${targetBase}/trmnl/markup`,
+        token: "unusable-origin-secret-token",
+        user_uuid: "unusable-origin-user",
+        model: "og_png",
+        orientation: "landscape",
+        font: "default",
+      }),
+    });
+
+    assert.equal(response.status, 303);
+    const location = response.headers.get("location") ?? "";
+    assert.match(location, /^\//);
+    assert.doesNotMatch(location, /unusable-origin-secret-token/);
+    assert.doesNotMatch(location, /user_uuid/);
+    assert.doesNotMatch(location, /target=/);
+  } finally {
+    await close(preview);
+    await close(target);
+  }
+});
+
+test("settings reject cross-site browser origins even when the csrf token is present", async () => {
+  const preview = createPreviewServer(baseConfig);
+  const previewBase = await listen(preview);
+
+  try {
+    const initial = await getSession(previewBase);
+    const response = await fetch(`${previewBase}/settings`, {
+      method: "POST",
+      redirect: "manual",
+      headers: {
+        cookie: initial.cookie,
+        origin: "http://attacker.test",
+      },
+      body: new URLSearchParams({
+        sid: initial.sid,
+        csrf: initial.csrf,
+        target: "http://127.0.0.1:1234/trmnl/markup",
+        token: "cross-site-secret-token",
+        user_uuid: "cross-site-user",
+        model: "og_png",
+        orientation: "landscape",
+        font: "default",
+      }),
+    });
+    const html = await response.text();
+
+    assert.equal(response.status, 403);
+    assert.match(html, /Settings requests must come from this preview server/);
+    assert.doesNotMatch(html, /cross-site-secret-token/);
+    assert.doesNotMatch(html, /\/render\//);
   } finally {
     await close(preview);
   }
