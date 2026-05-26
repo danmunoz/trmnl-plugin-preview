@@ -2,6 +2,12 @@
 
 Preview third-party TRMNL plugin markup locally before it reaches a device.
 
+<img
+  src="./docs/assets/trmnl-preview-workspace.png"
+  alt="TRMNL Preview workspace showing four rendered plugin layout variants"
+  width="720"
+/>
+
 The preview server connects to your plugin's `plugin_markup_url`, validates the
 response, and renders all four TRMNL layout variants in a desktop workspace.
 It is intended for plugin authors who already have a local or remote endpoint
@@ -11,6 +17,16 @@ The tool runs entirely on your machine. It does not upload your markup,
 credentials, diagnostics, screenshots, or plugin data to any preview service.
 When you use the default local target mode, requests stay inside your local
 development environment.
+
+## Where This Fits
+
+`trmnl-plugin-preview` is for [Third Party plugins](https://docs.trmnl.com/go/plugin-marketplace/introduction):
+hosted endpoints that return TRMNL markup in response to a
+`plugin_markup_url` request. If you're building a local Liquid-based
+[Private Plugin](https://help.trmnl.com/en/articles/9510536-private-plugins)
+or [Recipe](https://help.trmnl.com/en/articles/10122094-plugin-recipes)
+project that lives inside TRMNL,
+[trmnlp](https://github.com/usetrmnl/trmnlp) is the better fit.
 
 ## Quick Start
 
