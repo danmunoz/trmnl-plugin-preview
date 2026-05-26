@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { cssDimensions } from "../dist/src/server.js";
-import { applyDashboardQueryTemplate, renderDashboard, renderPluginDocument } from "../dist/src/html.js";
+import { applyDashboardQueryTemplate, renderDashboard, renderErrorDocument, renderPluginDocument } from "../dist/src/html.js";
 
 const model = {
   name: "v2",
@@ -45,6 +45,7 @@ const palette = {
 const config = {
   host: "127.0.0.1",
   port: 4568,
+  openBrowser: false,
   targetUrl: "http://localhost:8787/trmnl/markup",
   token: "secret-token-for-test",
   userUuid: "user",
@@ -135,6 +136,13 @@ test("dashboard renders one selected device and four variant frames", () => {
   assert.match(html, /<input id="font-classic" type="radio" name="font" value="classic" checked>/);
   assert.match(html, /<button class="refresh-button" type="submit">Reload previews<\/button>/);
   assert.match(html, /<details class="connection-menu">\s*<summary class="settings-button">Settings<\/summary>/);
+  assert.match(html, /font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif/);
+  assert.match(html, /--paper: #f7f7f5;/);
+  assert.match(html, /--accent: #202124;/);
+  assert.match(html, /\.refresh-button \{ border-radius: 8px; font-weight: 650;/);
+  assert.doesNotMatch(html, /Avenir Next/);
+  assert.doesNotMatch(html, /--accent: #0f766e;/);
+  assert.doesNotMatch(html, /--paper: #f4f1ea;/);
   assert.doesNotMatch(html, /Saved session/);
   assert.doesNotMatch(html, /connection-badge/);
   assert.match(html, /<div class="connection-panel">/);
@@ -157,6 +165,11 @@ test("dashboard renders one selected device and four variant frames", () => {
   assert.match(html, /\.preview-card \{ width: var\(--preview-card-width\);/);
   assert.match(html, /measurePreviewFrames/);
   assert.match(html, /--visible-frame-width/);
+  assert.match(html, /document\.addEventListener\("click", closeOpenPanels\)/);
+  assert.match(html, /window\.addEventListener\("blur", closeOpenPanelsForFrameFocus\)/);
+  assert.match(html, /document\.activeElement\?\.tagName === "IFRAME"/);
+  assert.match(html, /querySelectorAll\("\.connection-menu\[open\], \.diagnostics\[open\]"\)/);
+  assert.match(html, /details\.contains\(target\)/);
   assert.doesNotMatch(html, /--fit-zoom/);
   assert.doesNotMatch(html, /ResizeObserver/);
   assert.match(html, /<iframe data-src="\/render\/full\.html\?sid=session-123&model=v2&orientation=portrait&font=classic/);
@@ -215,6 +228,16 @@ test("dashboard first run is connection-first and does not load preview frames",
   assert.doesNotMatch(html, /\/api\/diagnostics/);
   assert.doesNotMatch(html, /<iframe/);
   assert.equal((html.match(/<iframe/g) ?? []).length, 0);
+});
+
+test("error document uses monochrome graphite styling", () => {
+  const html = renderErrorDocument("Something went wrong");
+
+  assert.match(html, /Something went wrong/);
+  assert.match(html, /background: #f7f7f5; color: #111113;/);
+  assert.match(html, /background: #ffffff;/);
+  assert.doesNotMatch(html, /#f6f0e8/);
+  assert.doesNotMatch(html, /#fffaf2/);
 });
 
 test("dashboard uses fixed display zoom by device", () => {

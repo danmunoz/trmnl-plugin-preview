@@ -62,10 +62,30 @@ async function routeRequest(
   if (pathname === "/") {
     const session = sessions.getOrCreate(sessionIdFromRequest(request, url.searchParams));
     const dashboardParams = paramsWithDefaults(url.searchParams, session.id);
+    const selection = selectionFromQuery(dashboardParams);
+
+    if (session.source === "configured") {
+      const validation = await validateConnection(config, client, session.connection, selection);
+      if (!validation.ok) {
+        const html = applyDashboardQueryTemplate(
+          renderDashboard(
+            { ...config, ...session.connection, connectionSource: "default" },
+            selection,
+            session.id,
+            session.csrfToken,
+            { connectionError: validation.error },
+          ),
+          dashboardParams,
+        );
+        send(response, 400, "text/html; charset=utf-8", html, cookieHeader(session.id));
+        return;
+      }
+    }
+
     const html = applyDashboardQueryTemplate(
       renderDashboard(
         { ...config, ...session.connection, connectionSource: session.source },
-        selectionFromQuery(dashboardParams),
+        selection,
         session.id,
         session.csrfToken,
       ),
@@ -79,8 +99,8 @@ async function routeRequest(
     const form = await readForm(request);
     const sessionId = form.get("sid") ?? sessionIdFromRequest(request, url.searchParams);
     const current = sessions.getOrCreate(sessionId);
-    assertSameOrigin(request);
     assertValidCsrf(form, current.csrfToken);
+    assertTrustedSettingsOrigin(request);
     const connectionInput = connectionFromParams(form);
     const candidateConnection = normalizeConnection(config, { ...current.connection, ...connectionInput });
     const params = paramsWithDefaults(form, current.id);
@@ -330,9 +350,9 @@ function assertValidCsrf(form: URLSearchParams, expected: string): void {
   }
 }
 
-function assertSameOrigin(request: IncomingMessage): void {
+function assertTrustedSettingsOrigin(request: IncomingMessage): void {
   const origin = request.headers.origin;
-  if (!origin) {
+  if (!origin || origin === "null") {
     return;
   }
   const host = request.headers.host;
@@ -346,7 +366,7 @@ function assertSameOrigin(request: IncomingMessage): void {
     }
   } catch (error) {
     if (error instanceof RequestError) throw error;
-    throw new RequestError(403, "Settings requests require a valid origin.");
+    return;
   }
 }
 

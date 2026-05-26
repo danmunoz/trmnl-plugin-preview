@@ -11,6 +11,7 @@ Usage:
 Options:
   --host <host>                    Host to bind (default: 127.0.0.1)
   --port <port>                    Port to bind (default: 4568)
+  --no-open                        Do not open preview in the default browser after start
   --target <url>                   Plugin markup URL
   --token <token>                  Bearer token for the markup URL
   --user-uuid <uuid>               User UUID sent to the markup URL
@@ -29,6 +30,8 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Pre
   const portValue = args.port ?? env.PORT ?? "4568";
   const requestTimeoutValue = args["request-timeout-ms"] ?? env.REQUEST_TIMEOUT_MS ?? "5000";
   const cacheTtlValue = args["cache-ttl-ms"] ?? env.CACHE_TTL_MS ?? "2000";
+  const openBrowserValue = args.open ?? env.TRMNL_PREVIEW_OPEN_BROWSER;
+  const noOpenValue = args["no-open"] ?? env.TRMNL_PREVIEW_NO_OPEN_BROWSER;
   const hasExplicitConnection = Boolean(
     args.target
       || env.TRMNL_PREVIEW_TARGET_URL
@@ -41,6 +44,7 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Pre
   return {
     host: args.host ?? env.HOST ?? "127.0.0.1",
     port: parsePositiveInt(portValue, "port"),
+    openBrowser: (openBrowserValue === undefined ? true : parseBoolean(openBrowserValue)) && !parseBoolean(noOpenValue),
     targetUrl: args.target ?? env.TRMNL_PREVIEW_TARGET_URL ?? DEFAULT_TARGET,
     token: args.token ?? env.TRMNL_PREVIEW_TOKEN ?? "local-preview-token",
     userUuid: args["user-uuid"] ?? env.TRMNL_PREVIEW_USER_UUID ?? "local-preview-user",

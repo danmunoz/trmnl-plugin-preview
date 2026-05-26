@@ -7,6 +7,8 @@ CLI flags take precedence over environment variables.
 | --- | --- | --- |
 | `--host` | `HOST` | `127.0.0.1` |
 | `--port` | `PORT` | `4568` |
+| `--no-open` | `TRMNL_PREVIEW_NO_OPEN_BROWSER` | `false` |
+| `--open` | `TRMNL_PREVIEW_OPEN_BROWSER` | `true` |
 | `--target` | `TRMNL_PREVIEW_TARGET_URL` | `http://localhost:8787/trmnl/markup` |
 | `--token` | `TRMNL_PREVIEW_TOKEN` | `local-preview-token` |
 | `--user-uuid` | `TRMNL_PREVIEW_USER_UUID` | `local-preview-user` |
