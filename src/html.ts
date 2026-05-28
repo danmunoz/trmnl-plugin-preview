@@ -279,7 +279,7 @@ function renderDeviceSection(
           <p>${canRender ? "Diagnostics must pass before this frame loads." : "Save endpoint connection settings to render this layout."}</p>
         </div>
         <div class="frame-shell" style="${zoomStyle}">
-          <iframe ${canRender ? `data-src="${htmlPath}"` : ""} title="${escapeAttribute(iframeTitle)}" loading="lazy" sandbox="allow-scripts" referrerpolicy="no-referrer" width="${width}" height="${height}"></iframe>
+          <iframe ${canRender ? `data-src="${htmlPath}"` : ""} title="${escapeAttribute(iframeTitle)}" loading="lazy" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" width="${width}" height="${height}"></iframe>
         </div>
       </div>
     </article>`;
