@@ -129,10 +129,10 @@ test("dashboard stores connection settings server-side and redirects to a saniti
 });
 
 test("PNG callbacks use the address that accepted the request", () => {
-  assert.equal(resolveRenderHost("100.88.130.4"), "100.88.130.4");
+  assert.equal(resolveRenderHost("192.0.2.10"), "192.0.2.10");
   assert.equal(resolveRenderHost("127.0.0.1"), "127.0.0.1");
   assert.equal(resolveRenderHost("::1"), "[::1]");
-  assert.equal(resolveRenderHost("::ffff:100.88.130.4"), "100.88.130.4");
+  assert.equal(resolveRenderHost("::ffff:192.0.2.10"), "192.0.2.10");
   assert.equal(resolveRenderHost("0.0.0.0"), "127.0.0.1");
   assert.equal(resolveRenderHost("::"), "127.0.0.1");
 });

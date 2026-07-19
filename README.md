@@ -115,16 +115,16 @@ trmnl-plugin-preview \
   --user-uuid local-preview-user
 ```
 
-To open the workspace from another device on your tailnet, bind the server to
-this machine's Tailscale IPv4 address:
+To open the workspace from another device on your network, bind the server to
+the exact address of the network interface you want to expose:
 
 ```bash
-trmnl-plugin-preview --host 100.x.y.z --port 4568 --no-open
+trmnl-plugin-preview --host 192.168.1.20 --port 4568 --no-open
 ```
 
-Then open `http://100.x.y.z:4568` from the other Tailscale-connected device.
-Binding the exact tailnet address keeps the service off non-Tailscale network
-interfaces and allows PNG rendering to call back into the same listener.
+Then open `http://192.168.1.20:4568` from the other device. Binding an exact
+interface address limits the listener to that interface and allows PNG rendering
+to call back into the same listener.
 
 See [Configuration](./docs/configuration.md) for the full CLI and environment
 variable reference.
