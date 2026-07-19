@@ -273,9 +273,23 @@ test("dashboard renders PNG previews inline", () => {
   );
 
   assert.match(html, /<input id="mode-png" type="radio" name="mode" value="png" checked>/);
+  assert.match(html, /<article class="preview-card preview-card--png" data-view="full">/);
+  assert.match(html, /<div class="png-skeleton" aria-hidden="true">/);
+  assert.match(html, /\.preview-card--png\.preview-card--rendered \.png-skeleton \{ display: none; \}/);
+  assert.match(html, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(html, /<img class="preview-media preview-image" data-src="\/render\/full\.png\?sid=png-session&model=v2&orientation=landscape&font=trmnl"/);
   assert.match(html, /alt="TRMNL X Landscape Full preview" width="1872" height="1404">/);
   assert.equal((html.match(/<img/g) ?? []).length, 4);
   assert.equal((html.match(/<iframe/g) ?? []).length, 0);
   assert.doesNotMatch(html, /target="_blank"/);
+});
+
+test("HTML previews do not render PNG loading skeletons", () => {
+  const html = renderDashboard(
+    config,
+    { model: "og_png", orientation: "landscape", fontFamily: "default", previewMode: "html" },
+  );
+
+  assert.doesNotMatch(html, /class="png-skeleton"/);
+  assert.doesNotMatch(html, /class="preview-card preview-card--png"/);
 });

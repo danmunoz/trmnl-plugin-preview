@@ -271,11 +271,23 @@ function renderDeviceSection(
     const pngPath = `/render/${view}.png?${query}`;
     const viewLabel = VIEW_LABELS[view];
     const previewTitle = `${model === "v2" ? "TRMNL X" : "TRMNL OG"} ${capitalize(orientation)} ${viewLabel} preview`;
+    const skeleton = previewMode === "png"
+      ? `<div class="png-skeleton" aria-hidden="true">
+          <span class="png-skeleton__title"></span>
+          <span class="png-skeleton__subtitle"></span>
+          <div class="png-skeleton__kpis">
+            <i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <div class="png-skeleton__body">
+            <i></i><i></i><i></i>
+          </div>
+        </div>`
+      : "";
     const preview = previewMode === "png"
       ? `<img class="preview-media preview-image" ${canRender ? `data-src="${pngPath}"` : ""} alt="${escapeAttribute(previewTitle)}" width="${width}" height="${height}">`
       : `<iframe class="preview-media preview-frame" ${canRender ? `data-src="${htmlPath}"` : ""} title="${escapeAttribute(previewTitle)}" loading="lazy" sandbox="allow-scripts" referrerpolicy="no-referrer" width="${width}" height="${height}"></iframe>`;
 
-    return `<article class="preview-card${canRender ? "" : " preview-card--blocked"}" data-view="${escapeAttribute(view)}">
+    return `<article class="preview-card${previewMode === "png" ? " preview-card--png" : ""}${canRender ? "" : " preview-card--blocked"}" data-view="${escapeAttribute(view)}">
       <div class="card-head">
         <div>
           <strong>${escapeHtml(viewLabel)}</strong>
@@ -288,6 +300,7 @@ function renderDeviceSection(
           <p>${canRender ? "Diagnostics must pass before this frame loads." : "Save endpoint connection settings to render this layout."}</p>
         </div>
         <div class="frame-shell" style="${frameStyle}">
+          ${skeleton}
           ${preview}
         </div>
       </div>
@@ -468,6 +481,19 @@ function dashboardCss(): string {
     .preview-media { display: block; border: 0; background: white; }
     .preview-frame { width: var(--frame-width); height: var(--frame-height); transform: scale(var(--display-zoom)); transform-origin: top left; }
     .preview-image { width: 100%; height: 100%; object-fit: contain; }
+    .preview-card--png .frame-shell { position: relative; }
+    .preview-card--png .preview-image { opacity: 0; }
+    .preview-card--png.preview-card--rendered .preview-image { opacity: 1; }
+    .preview-card--png.preview-card--rendered .png-skeleton { display: none; }
+    .png-skeleton { position: absolute; inset: 0; z-index: 1; display: grid; grid-template-columns: 28% 1fr; grid-template-rows: 9% 6% 24% 1fr; gap: 4%; padding: 5%; overflow: hidden; background: #f7f7f5; animation: skeleton-pulse 1.2s ease-in-out infinite alternate; }
+    .png-skeleton span, .png-skeleton i { display: block; border-radius: 4px; background: #d9d9d6; }
+    .png-skeleton__title { grid-column: 1; }
+    .png-skeleton__subtitle { grid-column: 1; width: 72%; }
+    .png-skeleton__kpis { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(6, 1fr); gap: 2%; }
+    .png-skeleton__body { grid-column: 1 / -1; display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: repeat(2, 1fr); gap: 4%; }
+    .png-skeleton__body i:first-child { grid-row: 1 / -1; }
+    @keyframes skeleton-pulse { from { opacity: 0.62; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .png-skeleton { animation: none; } }
     @media (max-width: 1100px) {
       .app-header { align-items: flex-start; flex-direction: column; }
       .diagnostics { justify-self: start; }
