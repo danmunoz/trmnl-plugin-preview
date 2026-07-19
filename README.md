@@ -97,9 +97,10 @@ The dashboard renders these four variants at once:
 - quadrant
 
 Controls let you switch between TRMNL OG and TRMNL X, landscape and portrait,
-and the TRMNL framework font modes. TRMNL OG is displayed at 80%; TRMNL X is
-displayed at 40%. Those are display-only scales. Rendered HTML and PNG routes
-still use the selected model's TRMNL framework dimensions.
+the TRMNL framework font modes, and live HTML or rendered PNG previews. Both
+device models fit into the same 640-pixel preview stage while preserving their
+native aspect ratios. Rendered HTML and PNG routes use the selected model's
+physical device dimensions.
 
 Endpoint diagnostics are available from the workspace status control. They show
 the target host, HTTP status, response keys, and a redacted `curl` command.
@@ -113,6 +114,17 @@ trmnl-plugin-preview \
   --token local-preview-token \
   --user-uuid local-preview-user
 ```
+
+To open the workspace from another device on your tailnet, bind the server to
+this machine's Tailscale IPv4 address:
+
+```bash
+trmnl-plugin-preview --host 100.x.y.z --port 4568 --no-open
+```
+
+Then open `http://100.x.y.z:4568` from the other Tailscale-connected device.
+Binding the exact tailnet address keeps the service off non-Tailscale network
+interfaces and allows PNG rendering to call back into the same listener.
 
 See [Configuration](./docs/configuration.md) for the full CLI and environment
 variable reference.
@@ -128,7 +140,8 @@ invalid JSON, or missing markup fields.
 Remote targets are disabled by default. Use `--allow-remote-targets` only for
 endpoints you control.
 
-**PNG links fail**  
+**PNG previews fail**
+
 Install Chromium with:
 
 ```bash

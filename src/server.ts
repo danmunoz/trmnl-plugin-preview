@@ -9,6 +9,7 @@ import {
   renderDiagnosticsJson,
   renderPluginDocument,
   type DashboardSelection,
+  type PreviewMode,
 } from "./html.js";
 import { findModel, findPalette, getModels, getPalettes } from "./metadata.js";
 import { PluginClient } from "./plugin-client.js";
@@ -195,7 +196,7 @@ async function contextFromQuery(
 }
 
 function renderHtmlUrl(request: IncomingMessage, context: RenderContext): string {
-  const address = request.socket.localAddress === "::1" ? "[::1]" : "127.0.0.1";
+  const address = resolveRenderHost(request.socket.localAddress);
   const port = request.socket.localPort;
   if (!port) {
     throw new RequestError(500, "Unable to determine preview render port.");
@@ -228,7 +229,15 @@ function selectionFromQuery(params: URLSearchParams): DashboardSelection {
   const model = params.get("model") === "v2" ? "v2" : "og_png";
   const orientation = parseOrientation(params.get("orientation") ?? "landscape");
   const fontFamily = parseFontFamily(params.get("font") ?? "default");
-  return { model, orientation, fontFamily };
+  const previewMode = parsePreviewMode(params.get("mode") ?? "html");
+  return { model, orientation, fontFamily, previewMode };
+}
+
+function parsePreviewMode(raw: string): PreviewMode {
+  if (raw === "html" || raw === "png") {
+    return raw;
+  }
+  throw new RequestError(400, `Unsupported preview mode: ${raw}`);
 }
 
 function parseFontFamily(raw: string): FrameworkFontFamily {
@@ -284,6 +293,9 @@ function paramsWithDefaults(source: URLSearchParams, sessionId: string): URLSear
   }
   if (!params.has("font")) {
     params.set("font", "default");
+  }
+  if (!params.has("mode")) {
+    params.set("mode", "html");
   }
   return params;
 }
@@ -424,6 +436,14 @@ async function readForm(request: IncomingMessage): Promise<URLSearchParams> {
     chunks.push(buffer);
   }
   return new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
+}
+
+export function resolveRenderHost(localAddress: string | undefined): string {
+  if (!localAddress || localAddress === "0.0.0.0" || localAddress === "::") {
+    return "127.0.0.1";
+  }
+  const address = localAddress.startsWith("::ffff:") ? localAddress.slice(7) : localAddress;
+  return address.includes(":") ? `[${address}]` : address;
 }
 
 export { cssDimensions };

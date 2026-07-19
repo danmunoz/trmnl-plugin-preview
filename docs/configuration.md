@@ -39,6 +39,12 @@ With the default local target policy, all preview traffic stays in your local
 development environment. When remote targets are enabled, the preview server
 sends the configured bearer token and TRMNL request body to the remote URL.
 
+## Tailscale Access
+
+Set `--host` to the machine's exact Tailscale IPv4 address, such as
+`--host 100.x.y.z`. The PNG renderer uses the address that accepted the browser
+request when it calls the local HTML render route.
+
 ## Framework Assets
 
 By default, the preview server loads TRMNL framework assets from

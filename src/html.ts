@@ -1,12 +1,15 @@
 import { MARKUP_KEYS, MASHUP_CLASSES, VIEW_LABELS, VIEWS } from "./defaults.js";
-import { cssDimensions, screenClasses, screenStyle } from "./device.js";
+import { physicalDimensions, screenClasses, screenStyle } from "./device.js";
 import type { FrameworkFontFamily, MarkupDiagnostics, PreviewConfig, RenderContext, TrmnlMarkupResponse } from "./types.js";
 
 export type DashboardSelection = {
   model: "og_png" | "v2";
   orientation: "landscape" | "portrait";
   fontFamily: FrameworkFontFamily;
+  previewMode?: PreviewMode;
 };
+
+export type PreviewMode = "html" | "png";
 
 export type DashboardRenderOptions = {
   connectionError?: string;
@@ -66,6 +69,7 @@ function renderFirstRunDashboard(
           <input type="hidden" name="model" value="${escapeAttribute(selection.model)}">
           <input type="hidden" name="orientation" value="${escapeAttribute(selection.orientation)}">
           <input type="hidden" name="font" value="${escapeAttribute(selection.fontFamily)}">
+          <input type="hidden" name="mode" value="${escapeAttribute(selection.previewMode ?? "html")}">
 
           <label for="target">
             <span>Markup URL</span>
@@ -106,7 +110,8 @@ function renderPreviewDashboard(
   const sid = escapeAttribute(sessionId);
   const csrf = escapeAttribute(csrfToken);
   const deviceTitle = selection.model === "v2" ? "TRMNL X" : "TRMNL OG";
-  const dimensions = selectedDimensions(selection);
+  const dimensions = selectedPhysicalDimensions(selection);
+  const previewMode = selection.previewMode ?? "html";
 
   return `<!doctype html>
 <html lang="en">
@@ -167,6 +172,10 @@ function renderPreviewDashboard(
           { value: "classic", label: "Classic", checked: selection.fontFamily === "classic" },
           { value: "trmnl", label: "TRMNL", checked: selection.fontFamily === "trmnl" },
         ])}
+        ${renderSegmentedControl("Preview", "mode", [
+          { value: "html", label: "HTML", checked: previewMode === "html" },
+          { value: "png", label: "PNG", checked: previewMode === "png" },
+        ])}
         <button class="refresh-button" type="submit">Reload previews</button>
       </section>
     </form>
@@ -179,7 +188,7 @@ function renderPreviewDashboard(
         `${deviceTitle} ${capitalize(selection.orientation)}`,
         dimensions.width,
         dimensions.height,
-        displayZoomForModel(selection.model),
+        previewMode,
         true,
       )}
     </main>
@@ -218,7 +227,7 @@ export function renderPluginDocument(
   const wrapped = mashupClass ? `<div class="${mashupClass}">${content}</div>` : content;
   const classes = screenClasses(context.model, context.palette, context.orientation, context.fontFamily);
   const styles = screenStyle(context.model, context.orientation);
-  const dimensions = cssDimensions(context.model, context.orientation);
+  const dimensions = physicalDimensions(context.model, context.orientation);
   const cssUrl = `${config.frameworkAssetHost}/css/${config.frameworkVersion}/plugins.css`;
   const jsUrl = `${config.frameworkAssetHost}/js/${config.frameworkVersion}/plugins.js`;
 
@@ -251,17 +260,20 @@ function renderDeviceSection(
   title: string,
   width: number,
   height: number,
-  zoom: number,
+  previewMode: PreviewMode,
   canRender: boolean,
 ): string {
-  const zoomStyle = `--frame-width: ${width}px; --frame-height: ${height}px; --display-zoom: ${formatZoom(zoom)};`;
-  const previewMinWidth = Math.max(320, Math.ceil(width * zoom));
+  const geometry = previewGeometry(width, height);
+  const frameStyle = `--frame-width: ${width}px; --frame-height: ${height}px; --display-width: ${geometry.width}px; --display-height: ${geometry.height}px; --display-zoom: ${formatZoom(geometry.zoom)};`;
   const cards = VIEWS.map((view) => {
     const query = `sid=${encodeURIComponent(sessionId)}&model=${encodeURIComponent(model)}&orientation=${encodeURIComponent(orientation)}${userQuerySuffix()}`;
     const htmlPath = `/render/${view}.html?${query}`;
     const pngPath = `/render/${view}.png?${query}`;
     const viewLabel = VIEW_LABELS[view];
-    const iframeTitle = `${model === "v2" ? "TRMNL X" : "TRMNL OG"} ${capitalize(orientation)} ${viewLabel} preview`;
+    const previewTitle = `${model === "v2" ? "TRMNL X" : "TRMNL OG"} ${capitalize(orientation)} ${viewLabel} preview`;
+    const preview = previewMode === "png"
+      ? `<img class="preview-media preview-image" ${canRender ? `data-src="${pngPath}"` : ""} alt="${escapeAttribute(previewTitle)}" width="${width}" height="${height}">`
+      : `<iframe class="preview-media preview-frame" ${canRender ? `data-src="${htmlPath}"` : ""} title="${escapeAttribute(previewTitle)}" loading="lazy" sandbox="allow-scripts" referrerpolicy="no-referrer" width="${width}" height="${height}"></iframe>`;
 
     return `<article class="preview-card${canRender ? "" : " preview-card--blocked"}" data-view="${escapeAttribute(view)}">
       <div class="card-head">
@@ -269,23 +281,20 @@ function renderDeviceSection(
           <strong>${escapeHtml(viewLabel)}</strong>
           <span>${width}x${height}</span>
         </div>
-        <div class="card-actions">
-          <a href="${pngPath}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeAttribute(viewLabel)} PNG">PNG</a>
-        </div>
       </div>
       <div class="frame-viewport">
         <div class="blocked-state">
           <strong>Preview paused</strong>
           <p>${canRender ? "Diagnostics must pass before this frame loads." : "Save endpoint connection settings to render this layout."}</p>
         </div>
-        <div class="frame-shell" style="${zoomStyle}">
-          <iframe ${canRender ? `data-src="${htmlPath}"` : ""} title="${escapeAttribute(iframeTitle)}" loading="lazy" sandbox="allow-scripts" referrerpolicy="no-referrer" width="${width}" height="${height}"></iframe>
+        <div class="frame-shell" style="${frameStyle}">
+          ${preview}
         </div>
       </div>
     </article>`;
   }).join("");
 
-  return `<section class="preview-section" style="--preview-min-width: ${previewMinWidth}px; --measured-preview-width: ${previewMinWidth}px;">
+  return `<section class="preview-section">
     <div class="section-head">
       <div>
         <p class="eyebrow">Workspace</p>
@@ -440,7 +449,7 @@ function dashboardCss(): string {
     .diagnostics-popover div { display: grid; gap: 3px; min-width: 0; }
     .diagnostics-popover strong { min-width: 0; overflow-wrap: anywhere; font-size: 13px; font-weight: 650; }
     .diagnostics-curl textarea { min-height: 86px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-    .preview-section { --preview-card-width: max(var(--preview-min-width), var(--measured-preview-width)); display: grid; gap: 12px; }
+    .preview-section { --preview-card-width: 642px; display: grid; gap: 12px; }
     .section-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; }
     .section-head h2 { font-size: 24px; }
     .section-head > span { color: var(--muted); font-size: 13px; font-weight: 600; }
@@ -450,15 +459,15 @@ function dashboardCss(): string {
     .card-head > div:first-child { display: grid; gap: 2px; }
     .card-head strong { font-size: 16px; font-weight: 650; }
     .card-head span { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
-    .card-actions { display: flex; align-items: center; gap: 8px; }
-    .card-actions a { display: inline-flex; padding: 5px 8px; font-size: 12px; }
-    .frame-viewport { position: relative; overflow: hidden; background: #e7e7e4; min-height: 112px; }
+    .frame-viewport { position: relative; display: flex; justify-content: center; overflow: hidden; background: #e7e7e4; min-height: 112px; }
     .blocked-state { position: absolute; inset: 0; z-index: 2; display: grid; place-content: center; gap: 6px; padding: 18px; text-align: center; background: repeating-linear-gradient(135deg, rgb(237 237 235 / 92%) 0 8px, rgb(247 247 245 / 92%) 8px 16px); }
     .blocked-state strong { font-size: 15px; font-weight: 650; }
     .blocked-state p { max-width: 340px; margin: 0 auto; font-size: 13px; }
     .preview-card--ready .blocked-state { display: none; }
-    .frame-shell { --visible-frame-width: var(--frame-width); --visible-frame-height: var(--frame-height); width: calc(var(--visible-frame-width) * var(--display-zoom)); height: calc(var(--visible-frame-height) * var(--display-zoom)); overflow: hidden; }
-    iframe { display: block; width: var(--visible-frame-width); height: var(--visible-frame-height); border: 0; background: white; transform: scale(var(--display-zoom)); transform-origin: top left; }
+    .frame-shell { width: var(--display-width); height: var(--display-height); overflow: hidden; background: white; }
+    .preview-media { display: block; border: 0; background: white; }
+    .preview-frame { width: var(--frame-width); height: var(--frame-height); transform: scale(var(--display-zoom)); transform-origin: top left; }
+    .preview-image { width: 100%; height: 100%; object-fit: contain; }
     @media (max-width: 1100px) {
       .app-header { align-items: flex-start; flex-direction: column; }
       .diagnostics { justify-self: start; }
@@ -500,9 +509,9 @@ function escapeAttribute(value: string): string {
   return escapeHtml(value);
 }
 
-function selectedDimensions(selection: DashboardSelection): { width: number; height: number } {
+function selectedPhysicalDimensions(selection: DashboardSelection): { width: number; height: number } {
   const landscape = selection.model === "v2"
-    ? { width: 1040, height: 780 }
+    ? { width: 1872, height: 1404 }
     : { width: 800, height: 480 };
   return selection.orientation === "portrait"
     ? { width: landscape.height, height: landscape.width }
@@ -514,11 +523,16 @@ function capitalize(value: string): string {
 }
 
 function formatZoom(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return Number(value.toFixed(6)).toString();
 }
 
-function displayZoomForModel(model: DashboardSelection["model"]): number {
-  return model === "v2" ? 0.4 : 0.8;
+function previewGeometry(width: number, height: number): { width: number; height: number; zoom: number } {
+  const zoom = 640 / Math.max(width, height);
+  return {
+    width: Math.round(width * zoom),
+    height: Math.round(height * zoom),
+    zoom,
+  };
 }
 
 function connectionSourceLabel(source: PreviewConfig["connectionSource"]): string {
@@ -536,53 +550,12 @@ function connectionHelpText(config: PreviewConfig): string {
 
 function dashboardScript(): string {
   return `
-    const measurePreviewFrames = () => {
-      for (const section of document.querySelectorAll(".preview-section")) {
-        const sectionStyle = getComputedStyle(section);
-        let cardWidth = Number.parseFloat(sectionStyle.getPropertyValue("--preview-min-width")) || 0;
-
-        for (const shell of section.querySelectorAll(".frame-shell")) {
-          const iframe = shell.querySelector("iframe");
-          const shellStyle = getComputedStyle(shell);
-          const frameWidth = Number.parseFloat(shellStyle.getPropertyValue("--frame-width")) || 0;
-          const frameHeight = Number.parseFloat(shellStyle.getPropertyValue("--frame-height")) || 0;
-          const displayZoom = Number.parseFloat(shellStyle.getPropertyValue("--display-zoom")) || 1;
-          let measuredWidth = frameWidth;
-          let measuredHeight = frameHeight;
-
-          try {
-            const doc = iframe?.contentDocument;
-            measuredWidth = Math.max(frameWidth, doc?.documentElement.scrollWidth ?? 0, doc?.body?.scrollWidth ?? 0);
-            measuredHeight = Math.max(frameHeight, doc?.documentElement.scrollHeight ?? 0, doc?.body?.scrollHeight ?? 0);
-          } catch {
-            measuredWidth = frameWidth;
-            measuredHeight = frameHeight;
-          }
-
-          shell.style.setProperty("--visible-frame-width", Math.ceil(measuredWidth) + "px");
-          shell.style.setProperty("--visible-frame-height", Math.ceil(measuredHeight) + "px");
-          cardWidth = Math.max(cardWidth, Math.ceil(measuredWidth * displayZoom));
-        }
-
-        section.style.setProperty("--measured-preview-width", Math.ceil(cardWidth) + "px");
-      }
-    };
-
-    for (const iframe of document.querySelectorAll("iframe")) {
-      iframe.addEventListener("load", () => {
-        const card = iframe.closest(".preview-card");
+    for (const media of document.querySelectorAll(".preview-media")) {
+      media.addEventListener("load", () => {
+        const card = media.closest(".preview-card");
         card?.classList.add("preview-card--rendered");
-        measurePreviewFrames();
-        try {
-          const doc = iframe.contentDocument;
-          doc?.fonts?.ready?.then(measurePreviewFrames).catch(() => {});
-        } catch {}
-        window.setTimeout(measurePreviewFrames, 100);
       });
     }
-
-    window.addEventListener("load", measurePreviewFrames);
-    measurePreviewFrames();
 
     const diagnostics = document.querySelector(".diagnostics");
     const dashboardForm = document.querySelector(".dashboard-form");
@@ -612,10 +585,10 @@ function dashboardScript(): string {
         card.classList.add("preview-card--" + state);
       }
     };
-    const loadPreviewFrames = () => {
-      for (const iframe of document.querySelectorAll("iframe[data-src]")) {
-        if (!iframe.getAttribute("src")) {
-          iframe.setAttribute("src", iframe.dataset.src);
+    const loadPreviewMedia = () => {
+      for (const media of document.querySelectorAll(".preview-media[data-src]")) {
+        if (!media.getAttribute("src")) {
+          media.setAttribute("src", media.dataset.src);
         }
       }
       setCardsState("ready");
@@ -640,7 +613,7 @@ function dashboardScript(): string {
           error.textContent = data.error || "";
         }
         if (data.ok) {
-          loadPreviewFrames();
+          loadPreviewMedia();
         } else {
           setCardsState("error");
         }
