@@ -390,7 +390,7 @@ function renderSecurityHeaders(config: PreviewConfig): Record<string, string> {
       "default-src 'none'",
       `script-src ${assetOrigin}`,
       `style-src ${assetOrigin} https://fonts.googleapis.com 'unsafe-inline'`,
-      "font-src https://fonts.gstatic.com",
+      `font-src ${assetOrigin} https://fonts.gstatic.com`,
       "img-src data: http: https:",
       "connect-src 'none'",
       "base-uri 'none'",

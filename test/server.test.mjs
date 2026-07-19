@@ -490,6 +490,7 @@ test("render requests use the session bearer token without putting it in render 
 
     assert.equal(render.status, 200);
     assert.match(render.headers.get("content-security-policy") ?? "", /default-src 'none'/);
+    assert.match(render.headers.get("content-security-policy") ?? "", /font-src https:\/\/trmnl\.com https:\/\/fonts\.gstatic\.com/);
     assert.match(render.headers.get("content-security-policy") ?? "", /connect-src 'none'/);
     assert.match(html, /Full/);
     assert.equal(seen.length, 2);
