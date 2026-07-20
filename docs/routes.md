@@ -38,8 +38,8 @@ Supported `:view` values:
 - `quadrant`
 
 HTML routes render the selected markup variant in a TRMNL framework screen
-shell. PNG routes open the HTML route with Playwright, capture the viewport, and
-quantize the image to the selected device palette.
+shell. PNG routes open the HTML route with Playwright, capture the physical
+device viewport, and quantize the image to the selected device palette.
 
 ## Diagnostics
 

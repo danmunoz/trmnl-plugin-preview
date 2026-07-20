@@ -10,16 +10,13 @@ export async function renderPng(input: {
   palette: Palette;
 }): Promise<Buffer> {
   const physical = physicalDimensions(input.model, input.orientation);
-  const viewport = {
-    width: Math.round(physical.width / input.model.scale_factor),
-    height: Math.round(physical.height / input.model.scale_factor),
-  };
+  const viewport = { width: physical.width, height: physical.height };
 
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage({
       viewport,
-      deviceScaleFactor: input.model.scale_factor,
+      deviceScaleFactor: 1,
     });
     await page.goto(input.url, { waitUntil: "networkidle", timeout: 10_000 });
     await page.evaluate(() => document.fonts.ready);

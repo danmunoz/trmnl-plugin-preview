@@ -89,6 +89,7 @@ test("half horizontal render uses mashup wrapper without duplicating view wrappe
   assert.match(html, /screen--1x/);
   assert.match(html, /fonts\.googleapis\.com\/css2\?family=Inter/);
   assert.match(html, /meta name="trmnl-framework-version" content="3\.1\.1"/);
+  assert.match(html, /meta name="viewport" content="width=1872, initial-scale=1"/);
 });
 
 test("default framework font leaves the screen font bundle unset", () => {
@@ -116,12 +117,13 @@ test("default framework font leaves the screen font bundle unset", () => {
 
 test("dashboard renders one selected device and four variant frames", () => {
   const html = applyDashboardQueryTemplate(
-    renderDashboard(config, { model: "v2", orientation: "portrait", fontFamily: "classic" }, "session-123"),
+    renderDashboard(config, { model: "v2", orientation: "portrait", fontFamily: "classic", previewMode: "html" }, "session-123"),
     new URLSearchParams({
       sid: "session-123",
       model: "v2",
       orientation: "portrait",
       font: "classic",
+      mode: "html",
     }),
   );
 
@@ -134,6 +136,8 @@ test("dashboard renders one selected device and four variant frames", () => {
   assert.match(html, /<input id="model-v2" type="radio" name="model" value="v2" checked>/);
   assert.match(html, /<input id="orientation-portrait" type="radio" name="orientation" value="portrait" checked>/);
   assert.match(html, /<input id="font-classic" type="radio" name="font" value="classic" checked>/);
+  assert.match(html, /<fieldset class="segmented-field">\s*<legend>Preview<\/legend>/);
+  assert.match(html, /<input id="mode-html" type="radio" name="mode" value="html" checked>/);
   assert.match(html, /<button class="refresh-button" type="submit">Reload previews<\/button>/);
   assert.match(html, /<details class="connection-menu">\s*<summary class="settings-button">Settings<\/summary>/);
   assert.match(html, /font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif/);
@@ -158,13 +162,14 @@ test("dashboard renders one selected device and four variant frames", () => {
   assert.match(html, /@media \(max-width: 760px\)/);
   assert.doesNotMatch(html, /name="zoom"/);
   assert.match(html, /font=classic/);
-  assert.match(html, /style="--frame-width: 780px; --frame-height: 1040px; --display-zoom: 0\.4;"/);
+  assert.match(html, /style="--frame-width: 1404px; --frame-height: 1872px; --display-width: 480px; --display-height: 640px; --display-zoom: 0\.34188;"/);
   assert.match(html, /class="frame-viewport"/);
-  assert.match(html, /<section class="preview-section" style="--preview-min-width: 320px; --measured-preview-width: 320px;">/);
+  assert.match(html, /<section class="preview-section">/);
+  assert.match(html, /\.preview-section \{ --preview-card-width: 642px;/);
   assert.match(html, /grid-template-columns: repeat\(auto-fit, var\(--preview-card-width\)\)/);
   assert.match(html, /\.preview-card \{ width: var\(--preview-card-width\);/);
-  assert.match(html, /measurePreviewFrames/);
-  assert.match(html, /--visible-frame-width/);
+  assert.doesNotMatch(html, /measurePreviewFrames/);
+  assert.doesNotMatch(html, /--visible-frame-width/);
   assert.match(html, /document\.addEventListener\("click", closeOpenPanels\)/);
   assert.match(html, /window\.addEventListener\("blur", closeOpenPanelsForFrameFocus\)/);
   assert.match(html, /document\.activeElement\?\.tagName === "IFRAME"/);
@@ -172,12 +177,12 @@ test("dashboard renders one selected device and four variant frames", () => {
   assert.match(html, /details\.contains\(target\)/);
   assert.doesNotMatch(html, /--fit-zoom/);
   assert.doesNotMatch(html, /ResizeObserver/);
-  assert.match(html, /<iframe data-src="\/render\/full\.html\?sid=session-123&model=v2&orientation=portrait&font=classic/);
-  assert.match(html, /sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"/);
+  assert.match(html, /<iframe class="preview-media preview-frame" data-src="\/render\/full\.html\?sid=session-123&model=v2&orientation=portrait&font=classic/);
+  assert.match(html, /sandbox="allow-scripts" referrerpolicy="no-referrer"/);
   assert.match(html, /title="TRMNL X Portrait Full preview"/);
-  assert.match(html, /target="_blank" rel="noopener noreferrer" aria-label="Open Full PNG"/);
-  assert.match(html, />780x1040<\/span>/);
-  assert.doesNotMatch(html, />HTML<\/a>/);
+  assert.doesNotMatch(html, /target="_blank"/);
+  assert.match(html, />1404x1872<\/span>/);
+  assert.match(html, /const loadPreviewMedia = \(\) =>/);
   assert.doesNotMatch(html, /data-card-status/);
   assert.doesNotMatch(html, /4 layouts rendered/);
   assert.match(html, /dashboardForm\?\.requestSubmit\(\)/);
@@ -206,6 +211,7 @@ test("dashboard first run is connection-first and does not load preview frames",
   assert.match(html, /<input type="hidden" name="model" value="og_png">/);
   assert.match(html, /<input type="hidden" name="orientation" value="landscape">/);
   assert.match(html, /<input type="hidden" name="font" value="default">/);
+  assert.match(html, /<input type="hidden" name="mode" value="html">/);
   assert.match(html, /name="target"/);
   assert.match(html, /value="http:\/\/localhost:8787\/trmnl\/markup"/);
   assert.match(html, /name="token"/);
@@ -240,14 +246,50 @@ test("error document uses monochrome graphite styling", () => {
   assert.doesNotMatch(html, /#fffaf2/);
 });
 
-test("dashboard uses fixed display zoom by device and sizes cards from scaled frames", () => {
+test("dashboard fits both devices into the same aspect-correct stage", () => {
   const og = renderDashboard(config, { model: "og_png", orientation: "landscape", fontFamily: "default" });
   const x = renderDashboard(config, { model: "v2", orientation: "landscape", fontFamily: "default" });
 
-  assert.match(og, /--display-zoom: 0\.8;/);
-  assert.match(x, /--display-zoom: 0\.4;/);
-  assert.match(og, /--preview-min-width: 640px;/);
-  assert.match(x, /--preview-min-width: 416px;/);
+  assert.match(og, /--frame-width: 800px; --frame-height: 480px; --display-width: 640px; --display-height: 384px; --display-zoom: 0\.8;/);
+  assert.match(x, /--frame-width: 1872px; --frame-height: 1404px; --display-width: 640px; --display-height: 480px; --display-zoom: 0\.34188;/);
   assert.doesNotMatch(og, /name="zoom"/);
   assert.doesNotMatch(x, /name="zoom"/);
+});
+
+test("dashboard renders PNG previews inline", () => {
+  const html = applyDashboardQueryTemplate(
+    renderDashboard(
+      config,
+      { model: "v2", orientation: "landscape", fontFamily: "trmnl", previewMode: "png" },
+      "png-session",
+    ),
+    new URLSearchParams({
+      sid: "png-session",
+      model: "v2",
+      orientation: "landscape",
+      font: "trmnl",
+      mode: "png",
+    }),
+  );
+
+  assert.match(html, /<input id="mode-png" type="radio" name="mode" value="png" checked>/);
+  assert.match(html, /<article class="preview-card preview-card--png" data-view="full">/);
+  assert.match(html, /<div class="png-skeleton" aria-hidden="true">/);
+  assert.match(html, /\.preview-card--png\.preview-card--rendered \.png-skeleton \{ display: none; \}/);
+  assert.match(html, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(html, /<img class="preview-media preview-image" data-src="\/render\/full\.png\?sid=png-session&model=v2&orientation=landscape&font=trmnl"/);
+  assert.match(html, /alt="TRMNL X Landscape Full preview" width="1872" height="1404">/);
+  assert.equal((html.match(/<img/g) ?? []).length, 4);
+  assert.equal((html.match(/<iframe/g) ?? []).length, 0);
+  assert.doesNotMatch(html, /target="_blank"/);
+});
+
+test("HTML previews do not render PNG loading skeletons", () => {
+  const html = renderDashboard(
+    config,
+    { model: "og_png", orientation: "landscape", fontFamily: "default", previewMode: "html" },
+  );
+
+  assert.doesNotMatch(html, /class="png-skeleton"/);
+  assert.doesNotMatch(html, /class="preview-card preview-card--png"/);
 });

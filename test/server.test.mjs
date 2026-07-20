@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import test from "node:test";
-import { createPreviewServer } from "../dist/src/server.js";
+import { createPreviewServer, resolveRenderHost } from "../dist/src/server.js";
 
 const baseConfig = {
   host: "127.0.0.1",
@@ -97,6 +97,7 @@ test("dashboard stores connection settings server-side and redirects to a saniti
         model: "v2",
         orientation: "portrait",
         font: "classic",
+        mode: "png",
       }),
     });
     assert.equal(response.status, 303);
@@ -106,6 +107,7 @@ test("dashboard stores connection settings server-side and redirects to a saniti
     assert.doesNotMatch(location, /query-secret/);
     assert.doesNotMatch(location, /user_uuid/);
     assert.doesNotMatch(location, /target=/);
+    assert.equal(new URL(location, previewBase).searchParams.get("mode"), "png");
 
     const cookie = response.headers.get("set-cookie")?.split(";")[0];
     assert.ok(cookie);
@@ -114,7 +116,8 @@ test("dashboard stores connection settings server-side and redirects to a saniti
     const html = await dashboard.text();
     assert.equal(dashboard.status, 200);
     assert.match(html, /type="password" autocomplete="off" placeholder="Configured"/);
-    assert.match(html, /\/render\/full\.html\?sid=/);
+    assert.match(html, /<input id="mode-png" type="radio" name="mode" value="png" checked>/);
+    assert.match(html, /\/render\/full\.png\?sid=/);
     assert.match(html, /\/api\/diagnostics\?sid=/);
     assert.doesNotMatch(html, /query-secret/);
     assert.doesNotMatch(html, /token=query-secret/);
@@ -123,6 +126,15 @@ test("dashboard stores connection settings server-side and redirects to a saniti
     await close(preview);
     await close(target);
   }
+});
+
+test("PNG callbacks use the address that accepted the request", () => {
+  assert.equal(resolveRenderHost("192.0.2.10"), "192.0.2.10");
+  assert.equal(resolveRenderHost("127.0.0.1"), "127.0.0.1");
+  assert.equal(resolveRenderHost("::1"), "[::1]");
+  assert.equal(resolveRenderHost("::ffff:192.0.2.10"), "192.0.2.10");
+  assert.equal(resolveRenderHost("0.0.0.0"), "127.0.0.1");
+  assert.equal(resolveRenderHost("::"), "127.0.0.1");
 });
 
 test("configured startup credentials are validated before rendering the workspace", async () => {
@@ -478,6 +490,7 @@ test("render requests use the session bearer token without putting it in render 
 
     assert.equal(render.status, 200);
     assert.match(render.headers.get("content-security-policy") ?? "", /default-src 'none'/);
+    assert.match(render.headers.get("content-security-policy") ?? "", /font-src https:\/\/trmnl\.com https:\/\/fonts\.gstatic\.com/);
     assert.match(render.headers.get("content-security-policy") ?? "", /connect-src 'none'/);
     assert.match(html, /Full/);
     assert.equal(seen.length, 2);
