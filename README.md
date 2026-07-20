@@ -30,6 +30,9 @@ project that lives inside TRMNL,
 
 ## Quick Start
 
+> Just want to see it work? Jump to [Try It With the Example Plugin](#try-it-with-the-example-plugin)
+> for a copy-paste run with no plugin of your own.
+
 Start your plugin server first. Then run the preview server with the markup URL,
 bearer token, and user UUID you want to test:
 
@@ -73,10 +76,45 @@ pnpm dev -- \
   --user-uuid local-preview-user
 ```
 
+## Try It With the Example Plugin
+
+Don't have a plugin endpoint yet? The repo ships a tiny, zero-dependency example
+so you can see the preview working in under a minute. It returns markup for all
+four views, each drawing a few labelled geometric figures — a clean starting
+point you can copy for your own endpoint.
+
+The example lives in the source tree (it isn't part of the npm package), so use a
+source checkout — see [Develop From Source](#develop-from-source). Then run the
+example endpoint and the preview in **two separate terminals** (each is a
+long-running server):
+
+```bash
+# terminal 1 — the example plugin endpoint (http://localhost:8787)
+node examples/shapes/server.mjs
+```
+
+```bash
+# terminal 2 — the preview, pointed at the example
+pnpm dev -- \
+  --target http://localhost:8787/trmnl/markup \
+  --token local-preview-token \
+  --user-uuid local-preview-user
+```
+
+Open <http://127.0.0.1:4568> and all four layout variants render. The example's
+defaults (`localhost:8787`, token `local-preview-token`, user
+`local-preview-user`) already match the preview's defaults, so `pnpm dev` with no
+flags works too.
+
+To change what each slot draws, edit `examples/shapes/server.mjs` — it's a single
+file with a `FIGURES` map and one `buildView(...)` call per view. See
+[examples/shapes/README.md](./examples/shapes/README.md) for the walkthrough and
+the exact markup contract your own endpoint should return.
+
 ## What You Need
 
 - Node.js `>=24 <26`
-- A TRMNL plugin markup endpoint
+- A TRMNL plugin markup endpoint — or the [bundled example](#try-it-with-the-example-plugin) to start
 - A bearer token accepted by that endpoint
 - A user UUID for the preview request
 - Chromium for PNG export, installed with `npx playwright install chromium`
