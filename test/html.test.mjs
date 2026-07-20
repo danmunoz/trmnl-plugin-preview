@@ -173,7 +173,7 @@ test("dashboard renders one selected device and four variant frames", () => {
   assert.doesNotMatch(html, /--fit-zoom/);
   assert.doesNotMatch(html, /ResizeObserver/);
   assert.match(html, /<iframe data-src="\/render\/full\.html\?sid=session-123&model=v2&orientation=portrait&font=classic/);
-  assert.match(html, /sandbox="allow-scripts" referrerpolicy="no-referrer"/);
+  assert.match(html, /sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"/);
   assert.match(html, /title="TRMNL X Portrait Full preview"/);
   assert.match(html, /target="_blank" rel="noopener noreferrer" aria-label="Open Full PNG"/);
   assert.match(html, />780x1040<\/span>/);
@@ -240,12 +240,14 @@ test("error document uses monochrome graphite styling", () => {
   assert.doesNotMatch(html, /#fffaf2/);
 });
 
-test("dashboard uses fixed display zoom by device", () => {
+test("dashboard uses fixed display zoom by device and sizes cards from scaled frames", () => {
   const og = renderDashboard(config, { model: "og_png", orientation: "landscape", fontFamily: "default" });
   const x = renderDashboard(config, { model: "v2", orientation: "landscape", fontFamily: "default" });
 
   assert.match(og, /--display-zoom: 0\.8;/);
   assert.match(x, /--display-zoom: 0\.4;/);
+  assert.match(og, /--preview-min-width: 640px;/);
+  assert.match(x, /--preview-min-width: 416px;/);
   assert.doesNotMatch(og, /name="zoom"/);
   assert.doesNotMatch(x, /name="zoom"/);
 });
