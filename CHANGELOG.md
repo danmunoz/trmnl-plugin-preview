@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/danmunoz/trmnl-plugin-preview/compare/trmnl-plugin-preview-0.2.2...trmnl-plugin-preview-0.3.0) (2026-07-20)
+
+
+### Features
+
+* preview sizing and modes ([25ca975](https://github.com/danmunoz/trmnl-plugin-preview/commit/25ca97586f2bcc1c79c15aaad11da20b5de6ebf3))
+
 ## [0.2.2](https://github.com/danmunoz/trmnl-plugin-preview/compare/trmnl-plugin-preview-0.2.1...trmnl-plugin-preview-0.2.2) (2026-07-20)
 
 
