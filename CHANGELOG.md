@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0](https://github.com/danmunoz/trmnl-plugin-preview/compare/trmnl-plugin-preview-0.2.2...trmnl-plugin-preview-0.3.0) (2026-07-20)
+
+
+### Features
+
+* Fit TRMNL OG and TRMNL X into a shared, aspect-correct preview stage and render PNGs at full physical device resolution, fixing cropped TRMNL X exports ([25ca975](https://github.com/danmunoz/trmnl-plugin-preview/commit/25ca97586f2bcc1c79c15aaad11da20b5de6ebf3))
+* Add an HTML/PNG toggle with inline PNG previews and loading skeletons ([25ca975](https://github.com/danmunoz/trmnl-plugin-preview/commit/25ca97586f2bcc1c79c15aaad11da20b5de6ebf3))
+* Support previewing from another device on the local network, and allow framework fonts served from the configured asset host ([25ca975](https://github.com/danmunoz/trmnl-plugin-preview/commit/25ca97586f2bcc1c79c15aaad11da20b5de6ebf3))
+
+Thanks [@jgennari](https://github.com/jgennari) for the contribution!
+
 ## [0.2.2](https://github.com/danmunoz/trmnl-plugin-preview/compare/trmnl-plugin-preview-0.2.1...trmnl-plugin-preview-0.2.2) (2026-07-20)
 
 
