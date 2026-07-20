@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/danmunoz/trmnl-plugin-preview/compare/trmnl-plugin-preview-0.2.1...trmnl-plugin-preview-0.2.2) (2026-07-20)
+
+
+### Bug Fixes
+
+* Improved the UI rendering for TRMNL X ([8e127e8](https://github.com/danmunoz/trmnl-plugin-preview/commit/8e127e8297f35cdf14e4237decacf54ad9a9448f))
+
 ## [0.2.1](https://github.com/danmunoz/trmnl-plugin-preview/compare/trmnl-plugin-preview-0.2.0...trmnl-plugin-preview-0.2.1) (2026-05-26)
 
 
