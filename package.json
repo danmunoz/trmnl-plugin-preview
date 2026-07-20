@@ -51,12 +51,12 @@
     "install:browsers": "playwright install chromium"
   },
   "dependencies": {
-    "playwright": "^1.53.0",
-    "sharp": "^0.34.2"
+    "playwright": "^1.61.1",
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
-    "@types/node": "^25.9.1",
-    "tsx": "^4.20.3",
-    "typescript": "^6.0.0"
+    "@types/node": "^26.1.1",
+    "tsx": "^4.23.0",
+    "typescript": "^7.0.2"
   }
 }
